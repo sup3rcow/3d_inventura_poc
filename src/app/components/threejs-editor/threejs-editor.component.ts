@@ -154,4 +154,13 @@ export class ThreejsEditorComponent implements OnInit, AfterViewChecked {
     this.webGLRenderer.render( this.scene, this.camera );
   }
 
+  cameraZ(isUp: boolean) {
+    this.camera.translateZ(isUp ? 1 : -1);
+  }
+
+  cameraX(isRight: boolean) {
+    this.camera.translateX(isRight ? 1 : -1);
+  }
+
+
 }
