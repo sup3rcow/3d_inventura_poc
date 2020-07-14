@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, Renderer2, AfterViewChecked, NgZone } from '@angular/core';
+import { Component, OnInit, ViewChild, Renderer2, AfterViewChecked, NgZone, HostListener, OnDestroy } from '@angular/core';
 // import * as THREE from 'three';
 // import * as THREE from 'three/build/three.module.js';
 import {
@@ -7,6 +7,7 @@ import {
 } from 'three';
 
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 @Component({
@@ -14,7 +15,7 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
   templateUrl: './threejs-editor.component.html',
   styleUrls: ['./threejs-editor.component.scss']
 })
-export class ThreejsEditorComponent implements OnInit, AfterViewChecked {
+export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('myCanvas', { static: true }) myCanvas;
 
   camera: PerspectiveCamera;
@@ -27,6 +28,14 @@ export class ThreejsEditorComponent implements OnInit, AfterViewChecked {
   elf: Scene;
   stats: Stats;
 
+
+  keyboardControls = {
+    up: false,
+    down: false,
+    left: false,
+    right: false
+  };
+
   constructor(private renderer: Renderer2, private zone: NgZone) { }
 
   ngAfterViewChecked() {
@@ -37,36 +46,16 @@ export class ThreejsEditorComponent implements OnInit, AfterViewChecked {
     this.zone.runOutsideAngular(() => {
       this.initThree();
       this.animate();
+
+      document.addEventListener('keydown', this.keydownPressHandler.bind(this));
+      document.addEventListener('keyup', this.keyupPressHandler.bind(this));
     });
   }
 
-  // default primjer
-  // initThree() {
-  //   this.scene = new Scene();
-  //   this.camera = new PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-  //   this.webGLRenderer = new WebGLRenderer();
-  //   // this.webGLRenderer.setSize( window.innerWidth, window.innerHeight );
-  //   this.webGLRenderer.setSize( 800, 500 );
-  //   // document.body.appendChild( this.webGLRenderer.domElement );
-  //   this.renderer.appendChild(this.myCanvas.nativeElement, this.webGLRenderer.domElement);
-
-  //   this.geometry = new BoxGeometry( 1, 1, 1 );
-  //   this.material = new MeshBasicMaterial( { color: 0x00ff00 } );
-  //   this.cube = new Mesh( this.geometry, this.material );
-  //   this.scene.add( this.cube );
-
-  //   this.camera.position.z = 5;
-  // }
-
-  // animate() {
-  //   requestAnimationFrame(() => this.animate());
-
-  //   this.cube.rotation.x += 0.01;
-  //   this.cube.rotation.y += 0.01;
-
-  //   this.webGLRenderer.render(this.scene, this.camera);
-  // }
+  ngOnDestroy() {
+    document.removeEventListener('keydown', this.keydownPressHandler);
+    document.removeEventListener('keyup', this.keyupPressHandler);
+  }
 
   initThree() {
     this.camera = new PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 2000 );
@@ -123,7 +112,10 @@ export class ThreejsEditorComponent implements OnInit, AfterViewChecked {
     // container.appendChild( stats.dom );
     this.renderer.appendChild(this.myCanvas.nativeElement, this.stats.dom);
 
-    //
+    // nije ok, napravi ovako https://threejs.org/examples/misc_controls_pointerlock.html
+    var controls = new OrbitControls( this.camera, this.myCanvas.nativeElement );
+    this.camera.position.set( 0, 0, 0 );
+    controls.update();
 
     window.addEventListener( 'resize', () => this.onWindowResize(), false );
 
@@ -150,17 +142,49 @@ export class ThreejsEditorComponent implements OnInit, AfterViewChecked {
     if ( this.elf !== undefined ) {
       // this.elf.rotation.z += delta * 0.5;
     }
+    if (this.keyboardControls.up) {
+      this.cameraZ(false);
+    }
+    if (this.keyboardControls.down) {
+      this.cameraZ(true);
+    }
+    if (this.keyboardControls.left) {
+      this.cameraX(false);
+    }
+    if (this.keyboardControls.right) {
+      this.cameraX(true);
+    }
 
     this.webGLRenderer.render( this.scene, this.camera );
   }
 
   cameraZ(isUp: boolean) {
-    this.camera.translateZ(isUp ? 1 : -1);
+    this.camera.translateZ(isUp ? 0.1 : -0.1);
+    //this.camera.translateY();
   }
 
   cameraX(isRight: boolean) {
-    this.camera.translateX(isRight ? 1 : -1);
+    this.camera.translateX(isRight ? 0.1 : -0.1);
   }
 
+  // key hendler
+  private keydownPressHandler(event: KeyboardEvent): void {
+    this.setKeyboardControl(event.key.toLowerCase(), true);
+  }
+  private keyupPressHandler(event: KeyboardEvent): void {
+    this.setKeyboardControl(event.key.toLowerCase(), false);
+  }
+
+  private setKeyboardControl(key: String, value: boolean) {
+    if (key == 'w') {
+      this.keyboardControls.up = value;
+    } else if (key == 's') {
+      this.keyboardControls.down = value;
+    } else if (key == 'a') {
+      this.keyboardControls.left = value;
+    } else if (key == 'd') {
+      this.keyboardControls.right = value;
+    }
+  }
 
 }
