@@ -7,7 +7,7 @@ import {
 } from 'three';
 
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 @Component({
@@ -27,6 +27,7 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
   clock: Clock;
   elf: Scene;
   stats: Stats;
+  controls: PointerLockControls;
 
 
   keyboardControls = {
@@ -49,12 +50,14 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
 
       document.addEventListener('keydown', this.keydownPressHandler.bind(this));
       document.addEventListener('keyup', this.keyupPressHandler.bind(this));
+      document.addEventListener('click', this.mouseClickHandler.bind(this));
     });
   }
 
   ngOnDestroy() {
     document.removeEventListener('keydown', this.keydownPressHandler);
     document.removeEventListener('keyup', this.keyupPressHandler);
+    document.removeEventListener('click', this.mouseClickHandler);
   }
 
   initThree() {
@@ -112,10 +115,8 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
     // container.appendChild( stats.dom );
     this.renderer.appendChild(this.myCanvas.nativeElement, this.stats.dom);
 
-    // nije ok, napravi ovako https://threejs.org/examples/misc_controls_pointerlock.html
-    var controls = new OrbitControls( this.camera, this.myCanvas.nativeElement );
-    this.camera.position.set( 0, 0, 0 );
-    controls.update();
+    this.controls = new PointerLockControls(this.camera, this.myCanvas.nativeElement);
+    this.scene.add(this.controls.getObject());
 
     window.addEventListener( 'resize', () => this.onWindowResize(), false );
 
@@ -131,7 +132,7 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
 
   animate() {
     requestAnimationFrame( () => this.animate() );
-
+    
     this.render();
     this.stats.update();
   }
@@ -173,6 +174,10 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
   }
   private keyupPressHandler(event: KeyboardEvent): void {
     this.setKeyboardControl(event.key.toLowerCase(), false);
+  }
+
+  private mouseClickHandler(event: MouseEvent): void {
+    this.controls.lock();
   }
 
   private setKeyboardControl(key: String, value: boolean) {
