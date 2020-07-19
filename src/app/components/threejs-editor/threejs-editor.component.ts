@@ -3,7 +3,7 @@ import { Component, OnInit, ViewChild, Renderer2, AfterViewChecked, NgZone, Host
 // import * as THREE from 'three/build/three.module.js';
 import {
   PerspectiveCamera, Scene, WebGLRenderer, BoxGeometry, MeshBasicMaterial, Mesh,
-  Clock, LoadingManager, AmbientLight, DirectionalLight
+  Clock, LoadingManager, AmbientLight, DirectionalLight, Raycaster, Vector2
 } from 'three';
 
 import { ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
@@ -29,13 +29,17 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
   stats: Stats;
   controls: PointerLockControls;
 
-
   keyboardControls = {
     up: false,
     down: false,
     left: false,
     right: false
   };
+
+  isMouseLock = true;
+
+  raycaster = new Raycaster();
+  mouse = new Vector2();
 
   constructor(private renderer: Renderer2, private zone: NgZone) { }
 
@@ -50,14 +54,14 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
 
       document.addEventListener('keydown', this.keydownPressHandler.bind(this));
       document.addEventListener('keyup', this.keyupPressHandler.bind(this));
-      document.addEventListener('click', this.mouseClickHandler.bind(this));
+      document.addEventListener('mousemove', this.mouseMoveHandler.bind(this));
     });
   }
 
   ngOnDestroy() {
     document.removeEventListener('keydown', this.keydownPressHandler);
     document.removeEventListener('keyup', this.keyupPressHandler);
-    document.removeEventListener('click', this.mouseClickHandler);
+    document.removeEventListener('mousemove', this.mouseMoveHandler);
   }
 
   initThree() {
@@ -156,7 +160,16 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
       this.cameraX(true);
     }
 
-    this.webGLRenderer.render( this.scene, this.camera );
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+	  var intersects = this.raycaster.intersectObjects(this.scene.children);
+
+    for ( var i = 0; i < intersects.length; i++ ) {
+      //intersects[i].object.material.color.set( 0xff0000 );
+      intersects[i].object.visible = false;
+      intersects[i].object.updateMatrix();
+    }
+
+    this.webGLRenderer.render(this.scene, this.camera);
   }
 
   cameraZ(isUp: boolean) {
@@ -168,6 +181,14 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
     this.camera.translateX(isRight ? 0.1 : -0.1);
   }
 
+  mouseLock() {
+    this.isMouseLock = !this.isMouseLock;
+
+    if (this.isMouseLock) {
+      this.controls.lock();
+    }
+  }
+
   // key hendler
   private keydownPressHandler(event: KeyboardEvent): void {
     this.setKeyboardControl(event.key.toLowerCase(), true);
@@ -176,8 +197,9 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
     this.setKeyboardControl(event.key.toLowerCase(), false);
   }
 
-  private mouseClickHandler(event: MouseEvent): void {
-    this.controls.lock();
+  private mouseMoveHandler(event: MouseEvent): void {
+    this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	  this.mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
   }
 
   private setKeyboardControl(key: String, value: boolean) {
@@ -191,5 +213,4 @@ export class ThreejsEditorComponent implements OnInit, OnDestroy, AfterViewCheck
       this.keyboardControls.right = value;
     }
   }
-
 }
